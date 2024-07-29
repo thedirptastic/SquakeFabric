@@ -15,6 +15,9 @@
     "client": [
       "derp.squake.client.SquakeFabricClient"
     ],
+    "modmenu" : [
+      "derp.squake.ModMenuIntegration"
+    ],
     "main": [
       "derp.squake.SquakeFabric"
     ]
