@@ -453,11 +453,11 @@ public class QuakeClientPlayer {
      */
     public static boolean quake_moveEntityWithHeading(PlayerEntity player, Vec3d movementInput) {
         // take care of ladder movement using default code
-            if (player.isClimbing()) {
+        if (player.isClimbing()) {
             return false;
         }
         // take care of lava movement using default code
-            else if ((player.isInLava() && !player.getAbilities().flying)) {
+        else if ((player.isInLava() && !player.getAbilities().flying)) {
             return false;
         } else if (player.isTouchingWater() && !player.getAbilities().flying) {
             if (SquakeFabricClient.CONFIG.isSharkingEnabled()) {
@@ -518,9 +518,9 @@ public class QuakeClientPlayer {
         }
 
         // swing them arms
-            player.updateLimbs(false);
+        player.updateLimbs(false);
 
-            return true;
+        return true;
     }
 
     private static boolean isInWater(Box box, World world) {

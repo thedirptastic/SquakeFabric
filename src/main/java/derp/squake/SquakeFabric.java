@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 public class SquakeFabric implements ModInitializer {
 
     public static final String MODNAME = "Squake";
+    public static boolean hasMod = false;
     public static final String MODID = "squakefabric";
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
@@ -17,5 +18,14 @@ public class SquakeFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         new ToggleKeyHandler();
+
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayerEntity player = handler.getPlayer();
+            Text message = Text.of("Server has MyServerMod installed!");
+            hasMod = true;
+        });
+    }
+    public static boolean getHasMod() {
+        return hasMod;
     }
 }

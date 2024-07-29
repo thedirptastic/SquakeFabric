@@ -3,22 +3,17 @@
   "id": "squake",
   "version": "${version}",
   "name": "squake",
-  "description": "A mod that adds Quake movement to minecraft!",
-  "authors": [
-    "thederptastic"
-  ],
+  "description": "",
+  "authors": [],
   "contact": {
-    "repo": "https://github.com/thederptastic/squakeupdated"
+    "repo": "https://github.com/derp/squake1203"
   },
-  "license": "Unlicense",
+  "license": "All-Rights-Reserved",
   "icon": "assets/squake/icon.png",
   "environment": "*",
   "entrypoints": {
     "client": [
       "derp.squake.client.SquakeFabricClient"
-    ],
-    "modmenu" : [
-      "derp.squake.ModMenuIntegration"
     ],
     "main": [
       "derp.squake.SquakeFabric"
@@ -30,7 +25,6 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": "1.21.*",
-    "cloth-config": "*"
+    "minecraft": "1.20.*"
   }
 }

@@ -5,7 +5,6 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
@@ -33,7 +32,6 @@ public class PlayerEntityMixin {
         PlayerEntity player = ((PlayerEntity)(Object)this);
         QuakeClientPlayer.beforeOnLivingUpdate(player);
     }
-    @Unique
     public boolean velChanged = false;
 
     @Inject(method = "handleFallDamage", at = @At("HEAD"))
