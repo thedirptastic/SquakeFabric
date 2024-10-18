@@ -24,6 +24,7 @@ public class ToggleKeyHandler {
 
     public static void registerKeys(RegisterKeyMappingsEvent evt)
     {
+        setup();
         evt.register(TOGGLE_KEY);
     }
 
