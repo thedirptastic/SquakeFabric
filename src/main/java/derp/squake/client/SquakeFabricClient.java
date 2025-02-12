@@ -35,7 +35,7 @@ public class SquakeFabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if(client.player != null) {
-                isJumping = client.player.input.jumping;
+                isJumping = client.player.input.playerInput.jump();
             }
         });
     }

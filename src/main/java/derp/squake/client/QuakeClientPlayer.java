@@ -48,7 +48,7 @@ public class QuakeClientPlayer {
         double d1 = player.getY();
         double d2 = player.getZ();
 
-        if ((player.getAbilities().flying || player.isFallFlying()) && player.getVehicle() == null)
+        if ((player.getAbilities().flying || player.isGliding()) && player.getVehicle() == null)
             return false;
         else
             didQuakeMovement = quake_moveEntityWithHeading(player, movementInput);
@@ -131,11 +131,14 @@ public class QuakeClientPlayer {
     public static void afterJump(PlayerEntity player)
     {
         if(!player.getWorld().isClient) {
+            System.out.println("why2");
             return;
         }
 
-        if (!SquakeFabricClient.CONFIG.getEnabled())
+        if (!SquakeFabricClient.CONFIG.getEnabled()) {
+            System.out.println("why");
             return;
+        }
 
         // undo this dumb thing
         if (player.isSprinting())

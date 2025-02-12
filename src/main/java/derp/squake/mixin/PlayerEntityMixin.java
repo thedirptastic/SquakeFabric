@@ -14,11 +14,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PlayerEntity.class)
 public class PlayerEntityMixin {
-    @Inject(method = "jump", at = @At("TAIL"))
+    /*@Inject(method = "jump", at = @At("TAIL"))
     public void jumpInject(CallbackInfo ci) {
         PlayerEntity player = ((PlayerEntity)(Object)this);
         QuakeClientPlayer.afterJump(player);
-    }
+    }*/
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     public void travelInject(Vec3d movementInput, CallbackInfo ci) {
