@@ -1,8 +1,6 @@
 ﻿
 # Squake
 
-**Neoforge (1.21) port coming soon™**
-
 Squake is client-side mod for Minecraft Forge/ Fabric which adds bunnyhopping, strafe jumping, air control, trimping, and sharking. It also can disable the loss of speed when taking fall damage (needs to be installed server-side).
 
 The modified movement code is based on Quake and Half-Life's code, with the the goal to make the movement feel the same as Half-Life.
