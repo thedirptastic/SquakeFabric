@@ -37,13 +37,6 @@ public abstract class PlayerEntityMixin extends LivingEntity implements ISquakeE
         QuakeClientPlayer.beforeOnLivingUpdate(asPlayer);
     }
 
-    @Inject(method = "jumpFromGround", at = @At("TAIL"))
-    public void afterJump(CallbackInfo ci)
-    {
-        var asPlayer = (Player) (LivingEntity) this;
-        QuakeClientPlayer.afterJump(asPlayer);
-    }
-
     private boolean wasVelocityChangedBeforeFall = false;
 
     @Inject(
