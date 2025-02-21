@@ -1,60 +1,65 @@
 package derp.squake.mixin;
 
 import derp.squake.client.QuakeClientPlayer;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PlayerEntity.class)
-public class PlayerEntityMixin {
-    /*@Inject(method = "jump", at = @At("TAIL"))
-    public void jumpInject(CallbackInfo ci) {
-        PlayerEntity player = ((PlayerEntity)(Object)this);
-        QuakeClientPlayer.afterJump(player);
-    }*/
+@Mixin(Player.class)
+public abstract class PlayerEntityMixin extends LivingEntity {
+    public PlayerEntityMixin(EntityType<? extends LivingEntity> p_20966_, Level p_20967_)
+    {
+        super(p_20966_, p_20967_);
+    }
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
-    public void travelInject(Vec3d movementInput, CallbackInfo ci) {
-        PlayerEntity player = ((PlayerEntity)(Object)this);
-        if(QuakeClientPlayer.moveEntityWithHeading(player, movementInput)) {
+    public void moveEntityWithHeading(Vec3 vec, CallbackInfo ci)
+    {
+        var asPlayer = (Player) (LivingEntity) this;
+        if(QuakeClientPlayer.moveEntityWithHeading(asPlayer, (float) vec.x, (float) vec.y, (float) vec.z))
             ci.cancel();
-        }
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
-    public void tickInject(CallbackInfo ci) {
-        PlayerEntity player = ((PlayerEntity)(Object)this);
-        QuakeClientPlayer.beforeOnLivingUpdate(player);
-    }
-    @Unique
-    public boolean velChanged = false;
-
-    @Inject(method = "handleFallDamage", at = @At("HEAD"))
-    public void handleFallDamageInject(float fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
-        PlayerEntity player = ((PlayerEntity)(Object)this);
-        if(player.getWorld().isClient) {
-            return;
-        }
-        velChanged = player.velocityDirty;
+    public void beforeOnLivingUpdate(CallbackInfo ci)
+    {
+        var asPlayer = (Player) (LivingEntity) this;
+        QuakeClientPlayer.beforeOnLivingUpdate(asPlayer);
     }
 
-    @Inject(method = "handleFallDamage", at = @At("RETURN"), slice = @Slice(
-            from = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;increaseStat(Lnet/minecraft/util/Identifier;I)V"),
-            to = @At("TAIL")
+    private boolean wasVelocityChangedBeforeFall = false;
+
+    @Inject(
+            method = "causeFallDamage",
+            at = @At("HEAD")
+    )
+    public void beforeFall(float distance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+    {
+        if(level().isClientSide) return;
+        wasVelocityChangedBeforeFall = hasImpulse;
+    }
+
+    @Inject(
+            method = "causeFallDamage",
+            at = @At("RETURN"),
+            slice = @Slice(
+                    from = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;awardStat(Lnet/minecraft/resources/ResourceLocation;I)V"),
+                    to = @At("TAIL")
             )
     )
-    public void handleFallDamageInjectSlice(float fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
-        PlayerEntity player = ((PlayerEntity)(Object)this);
-        if(player.getWorld().isClient) {
-            return;
-        }
-        player.velocityDirty = velChanged;
+    public void afterFall(float distance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+    {
+        if(level().isClientSide) return;
+        hasImpulse = wasVelocityChangedBeforeFall;
     }
 }

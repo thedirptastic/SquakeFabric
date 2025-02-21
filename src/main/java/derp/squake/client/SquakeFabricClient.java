@@ -9,10 +9,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.text.Text;
 
 
 import java.util.UUID;
@@ -35,7 +31,7 @@ public class SquakeFabricClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if(client.player != null) {
-                isJumping = client.player.input.playerInput.jump();
+                isJumping = client.player.input.keyPresses.jump();
             }
         });
     }

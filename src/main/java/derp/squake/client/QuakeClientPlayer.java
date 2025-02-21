@@ -1,22 +1,21 @@
 package derp.squake.client;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.MovementType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.joml.Vector3d;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,10 +32,10 @@ public class QuakeClientPlayer {
 
 
 
-    public static boolean moveEntityWithHeading(PlayerEntity player, Vec3d movementInput)
+    public static boolean moveEntityWithHeading(Player player, float sidemove, float upmove, float forwardmove)
     {
 
-        if(!player.getWorld().isClient) {
+        if(!player.level().isClientSide) {
             return false;
         }
 
@@ -48,18 +47,18 @@ public class QuakeClientPlayer {
         double d1 = player.getY();
         double d2 = player.getZ();
 
-        if ((player.getAbilities().flying || player.isGliding()) && player.getVehicle() == null)
+        if ((player.getAbilities().flying || player.isFallFlying()) && player.getVehicle() == null)
             return false;
         else
-            didQuakeMovement = quake_moveEntityWithHeading(player, movementInput);
+            didQuakeMovement = quake_moveEntityWithHeading(player, sidemove, upmove, forwardmove);
 
         return didQuakeMovement;
     }
 
-    public static void beforeOnLivingUpdate(PlayerEntity player)
+    public static void beforeOnLivingUpdate(Player player)
     {
 
-        if(!player.getWorld().isClient) {
+        if(!player.level().isClientSide) {
             return;
         }
 
@@ -73,23 +72,23 @@ public class QuakeClientPlayer {
 
     public static boolean moveRelativeBase(Entity entity, float sidemove, float forwardmove, float friction)
     {
-        if (!(entity instanceof PlayerEntity))
+        if (!(entity instanceof Player))
             return false;
 
-        return moveRelative((PlayerEntity)entity, sidemove, forwardmove, friction);
+        return moveRelative((Player)entity, sidemove, forwardmove, friction);
     }
 
-    public static boolean moveRelative(PlayerEntity player, float sidemove, float forwardmove, float friction)
+    public static boolean moveRelative(Player player, float sidemove, float forwardmove, float friction)
     {
-        if(!player.getWorld().isClient) {
+        if(!player.level().isClientSide) {
             return false;
         }
 
         if (!SquakeFabricClient.CONFIG.getEnabled())
             return false;
 
-        if ((player.getAbilities().flying && player.getVehicle() == null) || player.isTouchingWater()
-                || player.isInLava() || player.isClimbing())
+        if ((player.getAbilities().flying && player.getVehicle() == null) || player.isInWater()
+                || player.isInLava() || player.onClimbable())
         {
             return false;
         }
@@ -98,62 +97,38 @@ public class QuakeClientPlayer {
         float wishspeed = friction;
         wishspeed *= 2.15f;
         float[] wishdir = getMovementDirection(player, sidemove, forwardmove);
-        float[] wishvel = new float[]{wishdir[0] * wishspeed, wishdir[1] * wishspeed};
+        float[] wishvel = new float[]{
+                wishdir[0] * wishspeed,
+                wishdir[1] * wishspeed
+        };
+        baseVelocities.add(wishvel);
         baseVelocities.add(wishvel);
 
         return true;
     }
 
-    private static double[] getMovementDirection(PlayerEntity player, double sidemove, double forwardmove) {
-        double f3 = sidemove * sidemove + forwardmove * forwardmove;
-        double[] dir = {0.0F, 0.0F};
-
-        if (f3 >= 1.0E-4F) {
-            f3 = MathHelper.sqrt((float) f3);
-
-            if (f3 < 1.0F) {
-                f3 = 1.0F;
-            }
-
-            f3 = 1.0F / f3;
-            sidemove *= f3;
-            forwardmove *= f3;
-            double f4 = MathHelper.sin(player.getYaw() * (float) Math.PI / 180.0F);
-            double f5 = MathHelper.cos(player.getYaw() * (float) Math.PI / 180.0F);
-            dir[0] = (sidemove * f5 - forwardmove * f4);
-            dir[1] = (forwardmove * f5 + sidemove * f4);
-        }
-
-        return dir;
-    }
-
-
-    public static void afterJump(PlayerEntity player)
+    public static void afterJump(Player player)
     {
-        if(!player.getWorld().isClient) {
-            System.out.println("why2");
+        if(!player.level().isClientSide)
             return;
-        }
 
-        if (!SquakeFabricClient.CONFIG.getEnabled()) {
-            System.out.println("why");
+        if(!SquakeFabricClient.CONFIG.getEnabled())
             return;
-        }
+
+        if(player.hasEffect(MobEffects.LEVITATION))
+            return;
 
         // undo this dumb thing
-        if (player.isSprinting())
+        if(player.isSprinting())
         {
+            float f = player.getYRot() * 0.017453292F;
 
+            double motionX = PlayerAPI.getMotionX(player), motionZ = PlayerAPI.getMotionZ(player);
 
-            float f = player.getYaw() * 0.017453292F;
+            motionX += Mth.sin(f) * 0.2F;
+            motionZ -= Mth.cos(f) * 0.2F;
 
-            double X = getMotionX(player);
-            double Z = getMotionZ(player);
-
-            X += MathHelper.sin(f) * 0.2F;
-            Z -= MathHelper.cos(f) * 0.2F;
-
-            setMotionXZ(player, X, Z);
+            PlayerAPI.setMotionXZ(player, motionX, motionZ);
         }
 
         quake_Jump(player);
@@ -165,60 +140,61 @@ public class QuakeClientPlayer {
      * =================================================
      */
 
-    private static double getSpeed(PlayerEntity player)
+    private static double getSpeed(Player player)
     {
         double X = getMotionX(player);
         double Z = getMotionZ(player);
 
-        return MathHelper.sqrt((float) (X * X + Z * Z));
+        return Mth.sqrt((float) (X * X + Z * Z));
     }
 
-    private static float getSurfaceFriction(PlayerEntity player)
+    private static float getSurfaceFriction(Player player)
     {
         float f2 = 1.0F;
 
-        if (player.isOnGround())
+        if (player.onGround())
         {
-            BlockPos groundPos = new BlockPos(MathHelper.floor(player.getX()), MathHelper.floor(player.getBoundingBox().minY) - 1, MathHelper.floor(player.getZ()));
-            Block ground = player.getWorld().getBlockState(groundPos).getBlock();
-            f2 = 1.0F - ground.getSlipperiness();
+            BlockPos groundPos = new BlockPos(Mth.floor(player.getX()), Mth.floor(player.getBoundingBox().minY) - 1, Mth.floor(player.getZ()));
+            Block ground = player.level().getBlockState(groundPos).getBlock();
+            f2 = 1.0F - ground.getFriction();
         }
 
         return f2;
     }
 
-    private static float getSlipperiness(PlayerEntity player)
+    private static float getSlipperiness(Player player)
     {
-        float f2 = 1.0F;
-
-        if(player.isOnGround())
+        float f2 = 0.91F;
+        if(player.onGround())
         {
-            BlockPos groundPos = new BlockPos(MathHelper.floor(player.getX()), MathHelper.floor(player.getBoundingBox().minY) - 1, MathHelper.floor(player.getZ()));
-            f2 = 1.0F - PlayerAPI.getSlipperiness(player, groundPos);
+            BlockPos groundPos = new BlockPos(Mth.floor(player.getX()), Mth.floor(player.getBoundingBox().minY) - 1, Mth.floor(player.getZ()));
+            f2 = PlayerAPI.getSlipperiness(player, groundPos) * 0.91F;
         }
-
         return f2;
     }
 
-    private static float minecraft_getMoveSpeed(PlayerEntity player)
+    private static float minecraft_getMoveSpeed(Player player)
     {
         float f2 = getSlipperiness(player);
 
         float f3 = 0.16277136F / (f2 * f2 * f2);
 
-        return player.getMovementSpeed() * f3;
+        return player.getSpeed() * f3;
     }
 
-    private static float[] getMovementDirection(PlayerEntity player, float sidemove, float forwardmove)
+    private static float[] getMovementDirection(Player player, float sidemove, float forwardmove)
     {
         float f3 = sidemove * sidemove + forwardmove * forwardmove;
-        float[] dir = {0.0F, 0.0F};
+        float[] dir = {
+                0.0F,
+                0.0F
+        };
 
-        if (f3 >= 1.0E-4F)
+        if(f3 >= 1.0E-4F)
         {
-            f3 = MathHelper.sqrt(f3);
+            f3 = Mth.sqrt(f3);
 
-            if (f3 < 1.0F)
+            if(f3 < 1.0F)
             {
                 f3 = 1.0F;
             }
@@ -226,8 +202,8 @@ public class QuakeClientPlayer {
             f3 = 1.0F / f3;
             sidemove *= f3;
             forwardmove *= f3;
-            float f4 = MathHelper.sin((float) (player.getYaw() *  Math.PI / 180.0F));
-            float f5 = MathHelper.cos((float) (player.getYaw() *  Math.PI / 180.0F));
+            float f4 = Mth.sin(player.getYRot() * (float) Math.PI / 180.0F);
+            float f5 = Mth.cos(player.getYRot() * (float) Math.PI / 180.0F);
             dir[0] = (sidemove * f5 - forwardmove * f4);
             dir[1] = (forwardmove * f5 + sidemove * f4);
         }
@@ -235,41 +211,41 @@ public class QuakeClientPlayer {
         return dir;
     }
 
-    private static float quake_getMoveSpeed(PlayerEntity player)
+    private static float quake_getMoveSpeed(Player player)
     {
-        float baseSpeed = player.getMovementSpeed();
-        return !player.isSneaking() ? baseSpeed * 2.15F : baseSpeed * 1.11F;
+        float baseSpeed = player.getSpeed();
+        return !player.isShiftKeyDown() ? baseSpeed * 2.15F : baseSpeed * 1.11F;
     }
 
-    private static float quake_getMaxMoveSpeed(PlayerEntity player)
+    private static float quake_getMaxMoveSpeed(Player player)
     {
-        float baseSpeed = player.getMovementSpeed();
+        float baseSpeed = player.getSpeed();
         return baseSpeed * 2.15F;
     }
 
-    private static void spawnBunnyhopParticles(PlayerEntity player, int numParticles)
+    private static void spawnBunnyhopParticles(Player player, int numParticles)
     {
         // taken from sprint
-        int j = MathHelper.floor(player.getX());
-        int i = MathHelper.floor(player.getY() - 0.20000000298023224D - player.getHeight());
-        int k = MathHelper.floor(player.getZ());
-        BlockState blockState = player.getWorld().getBlockState(new BlockPos(j, i, k));
+        int j = Mth.floor(player.getX());
+        int i = Mth.floor(player.getY() - 0.20000000298023224D /*- player.getMyRidingOffset()*/);
+        int k = Mth.floor(player.getZ());
+        BlockState blockState = player.level().getBlockState(new BlockPos(j, i, k));
 
-        if (blockState.getRenderType() != BlockRenderType.INVISIBLE)
+        var motion = player.getDeltaMovement();
+        RandomSource random = player.getRandom();
+
+        if(blockState.getRenderShape() != RenderShape.INVISIBLE)
         {
-            for (int iParticle = 0; iParticle < numParticles; iParticle++)
+            for(int iParticle = 0; iParticle < numParticles; iParticle++)
             {
-                player.getWorld().addParticle(new BlockStateParticleEffect(ParticleTypes.BLOCK, blockState),
-                        player.getX() + (random.nextFloat() - 0.5D) * player.getWidth(),
-                        player.getBoundingBox().minY + 0.1D, player.getZ() + (random.nextFloat() - 0.5D) * player.getWidth(),
-                        -getMotionX(player) * 4.0D, 1.5D, -getMotionZ(player));
+                player.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, blockState), player.getX() + (random.nextFloat() - 0.5D) * player.getBbWidth(), player.getBoundingBox().minY + 0.1D, player.getZ() + (random.nextFloat() - 0.5D) * player.getBbWidth(), -motion.x * 4.0D, 1.5D, -motion.z * 4.0D);
             }
         }
     }
 
-    private static boolean isJumping(PlayerEntity player)
+    private static boolean isJumping(Player player)
     {
-        return SquakeFabricClient.isJumping;
+        return player.jumping;
     }
 
     /* =================================================
@@ -282,33 +258,33 @@ public class QuakeClientPlayer {
      * =================================================
      */
 
-    private static void minecraft_ApplyGravity(PlayerEntity player)
+    private static void minecraft_ApplyGravity(Player player)
     {
+        double motionY = PlayerAPI.getMotionY(player);
 
-        double Y = getMotionY(player);
-
-        if(player.getWorld().isClient && (!player.getWorld().isPosLoaded((int) player.getX(), (int) player.getZ()) || player.getWorld().getChunk(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())).getStatus() != ChunkStatus.FULL))
+        if(player.level().isClientSide && (!player.level().isLoaded(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())) || player.level().getChunk(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())).getPersistedStatus() != ChunkStatus.FULL))
         {
             if(player.getY() > 0.0D)
             {
-                Y = -0.1D;
+                motionY = -0.1D;
             } else
             {
-                Y = 0.0D;
+                motionY = 0.0D;
             }
         } else
         {
             // gravity
-            Y -= 0.08D;
+            var gravity = player.getGravity();
+            motionY -= gravity;
         }
 
         // air resistance
-        Y *= 0.9800000190734863D;
+        motionY *= 0.9800000190734863D;
 
-        setMotionY(player, Y);
+        PlayerAPI.setMotionY(player, motionY);
     }
 
-    private static void minecraft_ApplyFriction(PlayerEntity player, float momentumRetention)
+    private static void minecraft_ApplyFriction(Player player, float momentumRetention)
     {
         double X = getMotionX(player);
         double Z = getMotionZ(player);
@@ -365,79 +341,40 @@ public class QuakeClientPlayer {
 
      */
 
-    private static void minecraft_ClimbLadder(PlayerEntity player)
+    private static void minecraft_ClimbLadder(Player player)
     {
-        if (player.horizontalCollision && player.isClimbing())
+        if (player.horizontalCollision && player.onClimbable())
         {
             setMotionY(player, -0.2D);
         }
     }
 
-    /*private static void minecraft_SwingLimbsBasedOnMovement(PlayerEntity player)
+    private static void minecraft_SwingLimbsBasedOnMovement(Player player)
     {
-        double d0 = player.getX() - prevX(player);
-        double d1 = player.getZ() - prevZ(player);
-        float f6 = MathHelper.sqrt((float) (d0 * d0 + d1 * d1)) * 4.0F;
-
-        if (f6 > 1.0F)
-        {
-            f6 = 1.0F;
-        }
-
-        player.limbDistance += (f6 - player.limbDistance) * 0.4F;
-        player.limbAngle += player.limbDistance;
-    }*/
-
-    private static void minecraft_WaterMove(PlayerEntity player, Vec3d movementInput)
-    {
-        double d0 = player.getY();
-        player.updateVelocity(0.04F, movementInput);
-        player.move(MovementType.SELF, player.getVelocity());
-        Vec3d velocity = player.getVelocity().multiply(0.800000011920929D);
-        if (!player.isSwimming()) {
-            velocity = velocity.add(0, -0.01, 0);
-        }
-        player.setVelocity(velocity);
-
-
-        if (player.horizontalCollision && player.doesNotCollide(velocity.x, velocity.y + 0.6000000238418579D - player.getY() + d0, velocity.z))
-        {
-            player.setVelocity(velocity.x, 0.30000001192092896D, velocity.z);
-        }
+        float partialTick = (float)Mth.length(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
+        float f = Math.min(partialTick * 4.0F, 1.0F);
+        player.walkAnimation.update(f, 0.4F, player.isBaby() ? 3.0F : 1.0F);
     }
 
-
-    public static void minecraft_moveEntityWithHeading(PlayerEntity player, float sidemove, float forwardmove)
+    private static void minecraft_WaterMove(Player player, float sidemove, float upmove, float forwardmove)
     {
-        // take care of water and lava movement using default code
-        if ((player.isTouchingWater() && !player.getAbilities().flying)
-                || (player.isInLava() && !player.getAbilities().flying))
+        double d0 = player.getY();
+        player.moveRelative(0.04F, new Vec3(sidemove, upmove, forwardmove));
+
+        double motionX = PlayerAPI.getMotionX(player), motionY = PlayerAPI.getMotionY(player), motionZ = PlayerAPI.getMotionZ(player);
+
+        player.move(MoverType.SELF, player.getDeltaMovement());
+
+        motionX *= 0.800000011920929D;
+        motionY *= 0.800000011920929D;
+        motionZ *= 0.800000011920929D;
+        motionY -= 0.02D;
+
+        player.setDeltaMovement(motionX, motionY, motionZ);
+
+        if(player.horizontalCollision && PlayerAPI.isOffsetPositionInLiquid(player, PlayerAPI.getMotionX(player), PlayerAPI.getMotionY(player) + 0.6000000238418579D - player.getY() + d0, PlayerAPI.getMotionZ(player)))
         {
-            player.travel(new Vec3d(sidemove, 0, forwardmove));
-        }
-        else
-        {
-            // get friction
-            float momentumRetention = getSlipperiness(player);
-
-            // alter motionX/motionZ based on desired movement
-            player.updateVelocity(minecraft_getMoveSpeed(player), new Vec3d(sidemove, 0, forwardmove));
-
-            // make adjustments for ladder interaction
-            // minecraft_ApplyLadderPhysics(player);
-
-            // do the movement
-            player.move(MovementType.SELF, player.getVelocity());
-
-            // climb ladder here for some reason
-            minecraft_ClimbLadder(player);
-
-            // gravity + friction
-            minecraft_ApplyGravity(player);
-            minecraft_ApplyFriction(player, momentumRetention);
-
-            // swing them arms
-            player.updateLimbs(false);
+            PlayerAPI.setMotionY(player, 0.30000001192092896D);
         }
     }
 
@@ -454,25 +391,26 @@ public class QuakeClientPlayer {
     /**
      * Moves the entity based on the specified heading.  Args: strafe, forward
      */
-    public static boolean quake_moveEntityWithHeading(PlayerEntity player, Vec3d movementInput) {
+    public static boolean quake_moveEntityWithHeading(Player player, float sidemove, float upmove, float forwardmove) {
+
         // take care of ladder movement using default code
-            if (player.isClimbing()) {
+        if (player.onClimbable()) {
             return false;
         }
         // take care of lava movement using default code
             else if ((player.isInLava() && !player.getAbilities().flying)) {
             return false;
-        } else if (player.isTouchingWater() && !player.getAbilities().flying) {
+        } else if (player.isInWater() && !player.getAbilities().flying) {
             if (SquakeFabricClient.CONFIG.isSharkingEnabled()) {
-                return quake_WaterMove(player, (float) movementInput.x, (float) movementInput.y, (float) movementInput.z);
+                return quake_WaterMove(player, sidemove, upmove, forwardmove);
             } else {
                 return false;
             }
         } else {
             // get all relevant movement values
-            float wishspeed = (movementInput.x != 0.0D || movementInput.z != 0.0D) ? quake_getMoveSpeed(player) : 0.0F;
-            double[] wishdir = getMovementDirection(player, movementInput.x, movementInput.z);
-            boolean onGroundForReal = player.isOnGround() && !isJumping(player);
+            float wishspeed = (sidemove != 0.0F || forwardmove != 0.0F) ? quake_getMoveSpeed(player) : 0.0F;
+            float[] wishdir = getMovementDirection(player, sidemove, forwardmove);
+            boolean onGroundForReal = player.onGround() && !isJumping(player);
             float momentumRetention = getSlipperiness(player);
 
             // ground movement
@@ -494,7 +432,7 @@ public class QuakeClientPlayer {
                     float speedMod = wishspeed / quake_getMaxMoveSpeed(player);
                     // add in base velocities
                     for (float[] baseVel : baseVelocities) {
-                        player.setVelocity(player.getVelocity().add(baseVel[0] * speedMod, 0, baseVel[1] * speedMod));
+                        player.setDeltaMovement(player.getDeltaMovement().add(baseVel[0] * speedMod, 0, baseVel[1] * speedMod));
                     }
                 }
             }
@@ -503,85 +441,62 @@ public class QuakeClientPlayer {
                 double sv_airaccelerate = SquakeFabricClient.CONFIG.getAirAccelerate();
                 quake_AirAccelerate(player, wishspeed, wishdir[0], wishdir[1], sv_airaccelerate);
 
-                if (SquakeFabricClient.CONFIG.isSharkingEnabled() && SquakeFabricClient.CONFIG.getSharkingSurfaceTension() > 0.0D && isJumping(player) && player.getVelocity().y < 0.0F) {
-                    Box axisalignedbb = player.getBoundingBox().offset(player.getVelocity());
-                    boolean isFallingIntoWater = isInWater(axisalignedbb, player.getWorld());
+                if(SquakeFabricClient.CONFIG.isSharkingEnabled() && SquakeFabricClient.CONFIG.getSharkingSurfaceTension() > 0.0D && isJumping(player) && PlayerAPI.getMotionY(player) < 0.0F)
+                {
+                    var aabb = player.getBoundingBox().move(player.getDeltaMovement());
+                    boolean isFallingIntoWater = player.level().containsAnyLiquid(aabb);
 
-                    if (isFallingIntoWater) {
-                        player.setVelocity(player.getVelocity().multiply(1.0D, SquakeFabricClient.CONFIG.getSharkingSurfaceTension(), 1.0D));
-                    }
+                    if(isFallingIntoWater)
+                        PlayerAPI.setMotionY(player, PlayerAPI.getMotionY(player) * SquakeFabricClient.CONFIG.getSharkingSurfaceTension());
                 }
             }
 
             // apply velocity
-            player.move(MovementType.SELF, player.getVelocity());
+            player.move(MoverType.SELF, player.getDeltaMovement());
 
             // HL2 code applies half gravity before acceleration and half after acceleration, but this seems to work fine
             minecraft_ApplyGravity(player);
         }
 
         // swing them arms
-            player.updateLimbs(false);
+            minecraft_SwingLimbsBasedOnMovement(player);
 
             return true;
     }
 
-    private static boolean isInWater(Box box, World world) {
-        return BlockPos.stream(box).anyMatch(pos -> {
-            FluidState fluidState = world.getFluidState(pos);
-            return intersects(fluidState.getShape(world, pos), box);
-        });
-    }
-
-    public static boolean intersects(VoxelShape shape, Box box) {
-        if (shape.isEmpty()) return false;
-        MutableBoolean result = new MutableBoolean(false);
-        shape.forEachBox((minX, minY, minZ, maxX, maxY, maxZ) -> {
-            if (box.intersects(minX, minY, minZ, maxX, maxY, maxZ)) {
-                result.setTrue();
-            }
-        });
-        return result.booleanValue();
-    }
-
-
-
-    private static void quake_Jump(PlayerEntity player)
+    private static void quake_Jump(Player player)
     {
         quake_ApplySoftCap(player, quake_getMaxMoveSpeed(player));
 
         boolean didTrimp = quake_DoTrimp(player);
 
-        if (!didTrimp)
+        if(!didTrimp)
         {
             quake_ApplyHardCap(player, quake_getMaxMoveSpeed(player));
         }
     }
 
-    private static boolean quake_DoTrimp(PlayerEntity player)
+    private static boolean quake_DoTrimp(Player player)
     {
-        if (SquakeFabricClient.CONFIG.isTrimpEnabled() && player.isSneaking())
+        if(SquakeFabricClient.CONFIG.isTrimpEnabled() && player.isShiftKeyDown())
         {
             double curspeed = getSpeed(player);
             float movespeed = quake_getMaxMoveSpeed(player);
-            if (curspeed > movespeed)
+            if(curspeed > movespeed)
             {
                 double speedbonus = curspeed / movespeed * 0.5F;
-                if (speedbonus > 1.0F)
+                if(speedbonus > 1.0F)
                     speedbonus = 1.0F;
 
-                addMotionY(player, speedbonus * curspeed * SquakeFabricClient.CONFIG.getTrimpMultiplier());
+                PlayerAPI.setMotionY(player, PlayerAPI.getMotionY(player) + speedbonus * curspeed * SquakeFabricClient.CONFIG.getTrimpMultiplier());
 
-                if (SquakeFabricClient.CONFIG.getTrimpMultiplier() > 0)
+                if(SquakeFabricClient.CONFIG.getTrimpMultiplier() > 0)
                 {
-                    double X = getMotionX(player);
-                    double Z = getMotionZ(player);
-
-                    float mult = 1.0f / SquakeFabricClient.CONFIG.getTrimpMultiplier();
-
-                    X *= mult;
-                    Z *= mult;
-                    setMotionXZ(player, X, Z);
+                    float mult = (float) (1.0f / SquakeFabricClient.CONFIG.getTrimpMultiplier());
+                    double motionX = PlayerAPI.getMotionX(player), motionZ = PlayerAPI.getMotionZ(player);
+                    motionX *= mult;
+                    motionZ *= mult;
+                    PlayerAPI.setMotionXZ(player, motionX, motionZ);
                 }
 
                 spawnBunnyhopParticles(player, 30);
@@ -593,44 +508,13 @@ public class QuakeClientPlayer {
         return false;
     }
 
-    private static void quake_ApplyWaterFriction(PlayerEntity player, double friction)
+    private static void quake_ApplyWaterFriction(Player player, double friction)
     {
-        double X = getMotionX(player);
-        double Y = getMotionY(player);
-        double Z = getMotionZ(player);
-
-        X *= friction;
-        Y *= friction;
-        Z *= friction;
-
-        player.setVelocity(X, Y, Z);
-
-		/*
-		float speed = (float)(player.getSpeed());
-		float newspeed = 0.0F;
-		if (speed != 0.0F)
-		{
-			newspeed = speed - 0.05F * speed * friction; //* player->m_surfaceFriction;
-
-			float mult = newspeed/speed;
-			player.motionX *= mult;
-			player.motionY *= mult;
-			player.motionZ *= mult;
-		}
-
-		return newspeed;
-		*/
-
-		/*
-		// slow in water
-		player.motionX *= 0.800000011920929D;
-		player.motionY *= 0.800000011920929D;
-		player.motionZ *= 0.800000011920929D;
-		*/
+        player.setDeltaMovement(player.getDeltaMovement().scale(friction));
     }
 
     @SuppressWarnings("unused")
-    private static void quake_WaterAccelerate(PlayerEntity player, float wishspeed, float speed, double wishX, double wishZ, double accel)
+    private static void quake_WaterAccelerate(Player player, float wishspeed, float speed, double wishX, double wishZ, double accel)
     {
         float addspeed = wishspeed - speed;
         if (addspeed > 0)
@@ -649,53 +533,56 @@ public class QuakeClientPlayer {
         }
     }
 
-    private static boolean quake_WaterMove(PlayerEntity player, float sidemove, float upmove, float forwardmove) {
-        double lastPosY = player.getY();
+    private static boolean quake_WaterMove(Player player, float sidemove, float upmove, float forwardmove) {
+        double posY = player.getY();
 
         // get all relevant movement values
         float wishspeed = (sidemove != 0.0F || forwardmove != 0.0F) ? quake_getMaxMoveSpeed(player) : 0.0F;
         float[] wishdir = getMovementDirection(player, sidemove, forwardmove);
-        boolean isOffsetInLiquid = player.getWorld().getBlockState(player.getBlockPos().add(0,1,0)).getFluidState().isEmpty();
-        boolean isSharking = isJumping(player) && isOffsetInLiquid;
+        boolean isSharking = isJumping(player) && PlayerAPI.isOffsetPositionInLiquid(player, 0.0D, 1.0D, 0.0D);
         double curspeed = getSpeed(player);
 
-        if (!isSharking) {
-            return false;
-        } else if (curspeed < 0.078F) {
-            // I believe this is pre 1.13 movement code. Things feel weird without this
-            minecraft_WaterMove(player, new Vec3d(sidemove, upmove, forwardmove));
-        } else {
-            if (curspeed > 0.09) {
+        if(!isSharking || curspeed < 0.078F)
+        {
+            minecraft_WaterMove(player, sidemove, upmove, forwardmove);
+        } else
+        {
+            if(curspeed > 0.09)
                 quake_ApplyWaterFriction(player, SquakeFabricClient.CONFIG.getSharkingWaterFriction());
-            }
 
-            if (curspeed > 0.098) {
+            if(curspeed > 0.098)
                 quake_AirAccelerate(player, wishspeed, wishdir[0], wishdir[1], SquakeFabricClient.CONFIG.getGroundAccelerate());
-            } else {
+            else
                 quake_Accelerate(player, .0980F, wishdir[0], wishdir[1], SquakeFabricClient.CONFIG.getGroundAccelerate());
-            }
-            player.move(MovementType.SELF, player.getVelocity());
 
-            player.setVelocity(player.getVelocity().x, 0, player.getVelocity().z);
+            player.move(MoverType.SELF, player.getDeltaMovement());
+
+            PlayerAPI.setMotionY(player, 0);
         }
 
         // water jump
-        if (player.horizontalCollision && player.doesNotCollide(player.getVelocity().x, player.getVelocity().y + 0.6000000238418579D - player.getY() + lastPosY, player.getVelocity().z)) {
-            player.setVelocity(player.getVelocity().x, 0.30000001192092896D, player.getVelocity().z);
+        if(player.horizontalCollision && PlayerAPI.isOffsetPositionInLiquid(player, PlayerAPI.getMotionX(player), PlayerAPI.getMotionY(player) + 0.6000000238418579D - player.getY() + posY, PlayerAPI.getMotionZ(player)))
+        {
+            PlayerAPI.setMotionY(player, 0.30000001192092896D);
         }
 
-        if (!baseVelocities.isEmpty()) {
+        if(!baseVelocities.isEmpty())
+        {
             float speedMod = wishspeed / quake_getMaxMoveSpeed(player);
             // add in base velocities
-            for (float[] baseVel : baseVelocities) {
-                player.setVelocity(player.getVelocity().add(baseVel[0] * speedMod, 0, baseVel[1] * speedMod));
+
+            double motionX = PlayerAPI.getMotionX(player), motionZ = PlayerAPI.getMotionZ(player);
+            for(float[] baseVel : baseVelocities)
+            {
+                motionX += baseVel[0] * speedMod;
+                motionZ += baseVel[1] * speedMod;
             }
+            PlayerAPI.setMotionXZ(player, motionX, motionZ);
         }
-        return true;
+        return isSharking;
     }
 
-
-    private static void quake_Accelerate(PlayerEntity player, float wishspeed, double wishX, double wishZ, double accel)
+    private static void quake_Accelerate(Player player, float wishspeed, double wishX, double wishZ, double accel)
     {
         double addspeed, accelspeed, currentspeed;
 
@@ -727,7 +614,7 @@ public class QuakeClientPlayer {
         setMotionXZ(player, X, Z);
     }
 
-    private static void quake_AirAccelerate(PlayerEntity player, float wishspeed, double wishX, double wishZ, double accel)
+    private static void quake_AirAccelerate(Player player, float wishspeed, double wishX, double wishZ, double accel)
     {
         double addspeed, accelspeed, currentspeed;
 
@@ -765,7 +652,7 @@ public class QuakeClientPlayer {
     }
 
     @SuppressWarnings("unused")
-    private static void quake_Friction(PlayerEntity player)
+    private static void quake_Friction(Player player)
     {
         double speed, newspeed, control;
 
@@ -795,7 +682,7 @@ public class QuakeClientPlayer {
         control = (speed < sv_stopspeed) ? sv_stopspeed : speed;
 
         // Add the amount to the drop amount.
-        drop += control * friction * 0.05F;
+        drop += (float) (control * friction * 0.05F);
 
         // scale the velocity
         newspeed = speed - drop;
@@ -815,7 +702,7 @@ public class QuakeClientPlayer {
         setMotionXZ(player, X, Z);
     }
 
-    private static void quake_ApplySoftCap(PlayerEntity player, float movespeed)
+    private static void quake_ApplySoftCap(Player player, float movespeed)
     {
         float softCapPercent = SquakeFabricClient.CONFIG.getSoftCapThreshold();
         float softCapDegen = SquakeFabricClient.CONFIG.getSoftCapDegen();
@@ -848,7 +735,7 @@ public class QuakeClientPlayer {
         }
     }
 
-    private static void quake_ApplyHardCap(PlayerEntity player, float movespeed)
+    private static void quake_ApplyHardCap(Player player, float movespeed)
     {
         double X = getMotionX(player);
         double Z = getMotionZ(player);

@@ -32,5 +32,6 @@
     "fabric": "*",
     "minecraft": "1.21.*",
     "cloth-config": "*"
-  }
+  },
+  "accessWidener" : "squake.accesswidener"
 }
