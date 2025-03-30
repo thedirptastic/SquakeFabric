@@ -27,13 +27,6 @@ public abstract class EntityMixin implements ISquakeEntity{
         squakeDisableMovementTicks = amt;
     }
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    public void beforeOnLivingUpdate(CallbackInfo ci)
-    {
-        if(squakeDisableMovementTicks > 0)
-            --squakeDisableMovementTicks;
-    }
-
     @Inject(method = "moveRelative", at = @At("HEAD"), cancellable = true)
     public void moveRelativeBase(float friction, Vec3 relative, CallbackInfo ci)
     {
