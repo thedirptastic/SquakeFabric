@@ -13,11 +13,9 @@ public class FallDamageHandler {
         if(!(event.getEntity() instanceof Player))
             return;
 
-        event.setDistance(0);
-
-        /*if(ModConfig.increasedFallDistance() != 0.0D)
+        if(SquakeConfig.increasedFallDistance() != 0.0D)
         {
-            event.setDistance(event.getDistance() - ModConfig.increasedFallDistance());
-        }*/
+            event.setDistance(event.getDistance() - SquakeConfig.increasedFallDistance());
+        }
     }
 }

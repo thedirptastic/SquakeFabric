@@ -5,7 +5,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class ModConfig
+public class SquakeConfig
 {
     public static boolean isEnabled()
     {
@@ -172,11 +172,11 @@ public class ModConfig
     }
 
     static final ForgeConfigSpec commonSpec;
-    public static final ModConfig.Common COMMON;
+    public static final SquakeConfig.Common COMMON;
 
     static
     {
-        final Pair<ModConfig.Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(ModConfig.Common::new);
+        final Pair<SquakeConfig.Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(SquakeConfig.Common::new);
         commonSpec = specPair.getRight();
         COMMON = specPair.getLeft();
     }

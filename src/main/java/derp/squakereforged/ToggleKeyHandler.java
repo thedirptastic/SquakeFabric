@@ -32,8 +32,8 @@ public class ToggleKeyHandler {
     {
         if(TOGGLE_KEY.consumeClick())
         {
-            ModConfig.setEnabled(!ModConfig.isEnabled());
-            var feedback = MutableComponent.create(new TranslatableContents(ModConfig.isEnabled() ? "squake.key.toggle.enabled" : "squake.key.toggle.disabled", null, null));
+            SquakeConfig.setEnabled(!SquakeConfig.isEnabled());
+            var feedback = MutableComponent.create(new TranslatableContents(SquakeConfig.isEnabled() ? "squake.key.toggle.enabled" : "squake.key.toggle.disabled", null, null));
             var t1 = MutableComponent.create(new LiteralContents("["));
             var t2 = MutableComponent.create(new LiteralContents("Squake")).withStyle(ChatFormatting.GOLD);
             var t3 = MutableComponent.create(new LiteralContents("] "));
