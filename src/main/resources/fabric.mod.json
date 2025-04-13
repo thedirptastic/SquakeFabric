@@ -4,11 +4,11 @@
   "version": "${version}",
   "name": "squake",
   "description": "",
-  "authors": [],
+  "authors": ["thederptastic"],
   "contact": {
-    "repo": "https://github.com/derp/squake1203"
+    "repo": "https://github.com/thederptastic/SquakeFabric"
   },
-  "license": "All-Rights-Reserved",
+  "license": "MIT",
   "icon": "assets/squake/icon.png",
   "environment": "*",
   "entrypoints": {
