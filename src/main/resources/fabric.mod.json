@@ -10,7 +10,7 @@
   "contact": {
     "repo": "https://github.com/thederptastic/squakeupdated"
   },
-  "license": "Unlicense",
+  "license": "MIT",
   "icon": "assets/squake/icon.png",
   "environment": "*",
   "entrypoints": {
