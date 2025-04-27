@@ -43,7 +43,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             method = "causeFallDamage",
             at = @At("HEAD")
     )
-    public void beforeFall(float distance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+    public void beforeFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
         if(level().isClientSide) return;
         wasVelocityChangedBeforeFall = hasImpulse;
@@ -57,7 +57,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     to = @At("TAIL")
             )
     )
-    public void afterFall(float distance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+    public void afterFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
         if(level().isClientSide) return;
         hasImpulse = wasVelocityChangedBeforeFall;
