@@ -19,6 +19,4 @@ public class EntityMixin {
             ci.cancel();
         }
     }
-
-
 }
