@@ -13,6 +13,5 @@ public class SquakeFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        new ToggleKeyHandler();
     }
 }

@@ -1,6 +1,7 @@
 package derp.squake.mixin;
 
 import derp.squake.client.QuakeClientPlayer;
+import derp.squake.client.SquakeFabricClient;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -11,6 +12,7 @@ import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -45,21 +47,34 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     )
     public void beforeFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
-        if(level().isClientSide) return;
-        wasVelocityChangedBeforeFall = hasImpulse;
+        if(level().isClientSide()) return;
+        wasVelocityChangedBeforeFall = needsSync;
     }
 
     @Inject(
             method = "causeFallDamage",
-            at = @At("RETURN"),
-            slice = @Slice(
-                    from = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;awardStat(Lnet/minecraft/resources/ResourceLocation;I)V"),
-                    to = @At("TAIL")
-            )
+            at = @At(value = "RETURN", ordinal = 1)  // Target the second return (the true return)
     )
     public void afterFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
-        if(level().isClientSide) return;
-        hasImpulse = wasVelocityChangedBeforeFall;
+        if(level().isClientSide()) return;
+        needsSync = wasVelocityChangedBeforeFall;
+    }
+
+    @ModifyVariable(
+            method = "causeFallDamage",
+            at = @At("HEAD"),
+            ordinal = 0,
+            argsOnly = true
+    )
+    private double modifyFallDistance(double fallDistance)
+    {
+        if(!SquakeFabricClient.CONFIG.getEnabled())
+            return fallDistance;
+
+        double threshold = SquakeFabricClient.CONFIG.getFallDistanceThresholdIncrease();
+        double modifiedDistance = fallDistance - threshold;
+
+        return Math.max(0.0, modifiedDistance);
     }
 }

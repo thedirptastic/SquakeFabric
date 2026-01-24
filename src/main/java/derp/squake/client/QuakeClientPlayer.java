@@ -35,7 +35,7 @@ public class QuakeClientPlayer {
     public static boolean moveEntityWithHeading(Player player, float sidemove, float upmove, float forwardmove)
     {
 
-        if(!player.level().isClientSide) {
+        if(!player.level().isClientSide()) {
             return false;
         }
 
@@ -58,7 +58,7 @@ public class QuakeClientPlayer {
     public static void beforeOnLivingUpdate(Player player)
     {
 
-        if(!player.level().isClientSide) {
+        if(!player.level().isClientSide()) {
             return;
         }
 
@@ -80,7 +80,7 @@ public class QuakeClientPlayer {
 
     public static boolean moveRelative(Player player, float sidemove, float forwardmove, float friction)
     {
-        if(!player.level().isClientSide) {
+        if(!player.level().isClientSide()) {
             return false;
         }
 
@@ -109,7 +109,7 @@ public class QuakeClientPlayer {
 
     public static void afterJump(Player player)
     {
-        if(!player.level().isClientSide)
+        if(!player.level().isClientSide())
             return;
 
         if(!SquakeFabricClient.CONFIG.getEnabled())
@@ -262,7 +262,7 @@ public class QuakeClientPlayer {
     {
         double motionY = PlayerAPI.getMotionY(player);
 
-        if(player.level().isClientSide && (!player.level().isLoaded(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())) || player.level().getChunk(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())).getPersistedStatus() != ChunkStatus.FULL))
+        if(player.level().isClientSide() && (!player.level().isLoaded(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())) || player.level().getChunk(new BlockPos((int) player.getX(), (int) player.getY(), (int) player.getZ())).getPersistedStatus() != ChunkStatus.FULL))
         {
             if(player.getY() > 0.0D)
             {
@@ -351,9 +351,9 @@ public class QuakeClientPlayer {
 
     private static void minecraft_SwingLimbsBasedOnMovement(Player player)
     {
-        float partialTick = (float)Mth.length(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
-        float f = Math.min(partialTick * 4.0F, 1.0F);
-        player.walkAnimation.update(f, 0.4F, player.isBaby() ? 3.0F : 1.0F);
+        float distanceMoved = (float)Mth.length(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
+        float animationSpeed = Math.min(distanceMoved * 1.5F, 1.0F);
+        player.walkAnimation.update(animationSpeed, 0.4F, player.isBaby() ? 3.0F : 1.0F);
     }
 
     private static void minecraft_WaterMove(Player player, float sidemove, float upmove, float forwardmove)
