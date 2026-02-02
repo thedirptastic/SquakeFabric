@@ -60,21 +60,4 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         if(level().isClientSide()) return;
         needsSync = wasVelocityChangedBeforeFall;
     }
-
-    @ModifyVariable(
-            method = "causeFallDamage",
-            at = @At("HEAD"),
-            ordinal = 0,
-            argsOnly = true
-    )
-    private double modifyFallDistance(double fallDistance)
-    {
-        if(!SquakeFabricClient.CONFIG.getEnabled())
-            return fallDistance;
-
-        double threshold = SquakeFabricClient.CONFIG.getFallDistanceThresholdIncrease();
-        double modifiedDistance = fallDistance - threshold;
-
-        return Math.max(0.0, modifiedDistance);
-    }
 }
