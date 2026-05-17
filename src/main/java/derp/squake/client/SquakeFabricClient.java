@@ -9,7 +9,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
@@ -38,7 +38,7 @@ public class SquakeFabricClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
+        KeyMappingHelper.registerKeyMapping(TOGGLE_KEY);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (TOGGLE_KEY.consumeClick()) {
@@ -50,7 +50,7 @@ public class SquakeFabricClient implements ClientModInitializer {
                         .append("] Movement system " + status);
 
                 if (client.gui != null) {
-                    client.gui.getChat().addMessage(message);
+                    client.player.sendSystemMessage(message);
                 }
             }
 
