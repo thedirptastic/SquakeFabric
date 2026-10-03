@@ -14,7 +14,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 @Environment(EnvType.CLIENT)
 public class SquakeFabricClient implements ClientModInitializer {
@@ -26,8 +25,8 @@ public class SquakeFabricClient implements ClientModInitializer {
     // Keybinding
     private static final KeyMapping TOGGLE_KEY = new KeyMapping(
             "squake.key.toggle",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_COMMA,
+            InputConstants.Type.KEYBOARD,
+            InputConstants.KEY_COMMA,
             SQUAKE_CATEGORY
     );
 
