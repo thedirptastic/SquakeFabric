@@ -14,19 +14,15 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.phys.Vec3;
-import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.joml.Vector3d;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import static derp.squake.client.PlayerAPI.*;
-import static java.awt.geom.Path2D.intersects;
 
 
 public class QuakeClientPlayer {
-    private static final Random random = new Random();
 
     private static final List<float[]> baseVelocities = new ArrayList<>();
 
@@ -43,9 +39,6 @@ public class QuakeClientPlayer {
             return false;
 
         boolean didQuakeMovement;
-        double d0 = player.getX();
-        double d1 = player.getY();
-        double d2 = player.getZ();
 
         if ((player.getAbilities().flying || player.isFallFlying()) && player.getVehicle() == null)
             return false;
@@ -351,9 +344,10 @@ public class QuakeClientPlayer {
 
     private static void minecraft_SwingLimbsBasedOnMovement(Player player)
     {
-        float distanceMoved = (float)Mth.length(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
-        float animationSpeed = Math.min(distanceMoved * 1.5F, 1.0F);
-        player.walkAnimation.update(animationSpeed, 0.4F, player.isBaby() ? 3.0F : 1.0F);
+        float partialTick = (float)Mth.length(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
+        float f = Math.min(partialTick * 4.0F, 1.0F);
+
+        player.walkAnimation.update(f, 0.4F);
     }
 
     private static void minecraft_WaterMove(Player player, float sidemove, float upmove, float forwardmove)
@@ -492,7 +486,7 @@ public class QuakeClientPlayer {
 
                 if(SquakeFabricClient.CONFIG.getTrimpMultiplier() > 0)
                 {
-                    float mult = (float) (1.0f / SquakeFabricClient.CONFIG.getTrimpMultiplier());
+                    float mult = 1.0f / SquakeFabricClient.CONFIG.getTrimpMultiplier();
                     double motionX = PlayerAPI.getMotionX(player), motionZ = PlayerAPI.getMotionZ(player);
                     motionX *= mult;
                     motionZ *= mult;

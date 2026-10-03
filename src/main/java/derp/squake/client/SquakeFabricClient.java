@@ -2,31 +2,31 @@ package derp.squake.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import derp.squake.ModConfig;
-import derp.squake.SquakeFabric;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 @Environment(EnvType.CLIENT)
 public class SquakeFabricClient implements ClientModInitializer {
     public static final ModConfig CONFIG;
     public static boolean isJumping = false;
 
-    private static final KeyMapping.Category SQUAKE_CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath(SquakeFabric.MODID, "squake_category"));
+    // In 1.21.1, KeyMapping categories are just String translation keys
+    private static final String SQUAKE_CATEGORY = "squake.key.category";
 
     // Keybinding
     private static final KeyMapping TOGGLE_KEY = new KeyMapping(
             "squake.key.toggle",
-            InputConstants.Type.KEYBOARD,
-            InputConstants.KEY_COMMA,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_COMMA,
             SQUAKE_CATEGORY
     );
 
@@ -37,7 +37,7 @@ public class SquakeFabricClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        KeyMappingHelper.registerKeyMapping(TOGGLE_KEY);
+        KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (TOGGLE_KEY.consumeClick()) {
@@ -48,13 +48,15 @@ public class SquakeFabricClient implements ClientModInitializer {
                         .append(Component.literal("Squake").withStyle(ChatFormatting.GOLD))
                         .append("] Movement system " + status);
 
-                if (client.gui != null) {
-                    client.player.sendSystemMessage(message);
+                if (client.player != null) {
+                    // Use standard 1.21.1 displayClientMessage (false = display in chat instead of action bar)
+                    client.player.displayClientMessage(message, false);
                 }
             }
 
             if (client.player != null) {
-                isJumping = client.player.input.keyPresses.jump();
+                // In 1.21.1 Mojang mappings, jumping is accessed via the direct `.jumping` boolean field
+                isJumping = client.player.input.jumping;
             }
         });
     }

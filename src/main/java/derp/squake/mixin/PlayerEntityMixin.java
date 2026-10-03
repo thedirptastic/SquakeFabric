@@ -1,18 +1,15 @@
 package derp.squake.mixin;
 
 import derp.squake.client.QuakeClientPlayer;
-import derp.squake.client.SquakeFabricClient;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -45,19 +42,24 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             method = "causeFallDamage",
             at = @At("HEAD")
     )
-    public void beforeFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+    public void beforeFall(float fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
         if(level().isClientSide()) return;
-        wasVelocityChangedBeforeFall = needsSync;
+        wasVelocityChangedBeforeFall = hasImpulse;
     }
 
     @Inject(
             method = "causeFallDamage",
-            at = @At(value = "RETURN", ordinal = 1)  // Target the second return (the true return)
+            at = @At("RETURN"),
+            slice = @Slice(
+                    from = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;awardStat(Lnet/minecraft/resources/ResourceLocation;I)V"),
+                    to = @At("TAIL")
+            )
     )
-    public void afterFall(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
+
+    public void afterFall(float fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir)
     {
         if(level().isClientSide()) return;
-        needsSync = wasVelocityChangedBeforeFall;
+        hasImpulse = wasVelocityChangedBeforeFall;
     }
 }
